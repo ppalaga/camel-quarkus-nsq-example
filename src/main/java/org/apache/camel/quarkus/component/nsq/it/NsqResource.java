@@ -39,6 +39,7 @@ import static org.apache.camel.quarkus.component.nsq.it.NsqRoute.MESSAGE_CHARSET
 public class NsqResource {
 
     private static final Logger LOG = Logger.getLogger(NsqResource.class);
+    private static final org.apache.logging.log4j.Logger log4jLogger = org.apache.logging.log4j.LogManager.getLogger(NsqResource.class);
 
     private final ConcurrentHashMap<String, String> nsqMessages = new ConcurrentHashMap<>();
 
@@ -65,4 +66,13 @@ public class NsqResource {
         log(LOG, "Calling getNsqMessages(%s)", test);
         return nsqMessages.get(test);
     }
+
+    @Path("/log")
+    @POST
+    @Produces(MediaType.TEXT_PLAIN)
+    public void log4jLog(String message) {
+        LOG.info("Logging via log4j: " + message);
+        log4jLogger.error(message);
+    }
+
 }

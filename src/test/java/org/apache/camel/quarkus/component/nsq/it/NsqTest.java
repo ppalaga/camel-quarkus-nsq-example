@@ -16,6 +16,9 @@
  */
 package org.apache.camel.quarkus.component.nsq.it;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,6 +33,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.logging.Logger;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +72,42 @@ class NsqTest {
 
         log(LOG, "NsqTest.CONSUMER = %s:%s", CONSUMER_HOST, CONDUMER_PORT);
         log(LOG, "NsqTest.PRODUCER = %s:%s", PRODUCER_HOST, PRODUCER_PORT);
+    }
+
+    @Test
+    void log4jShell() throws Exception {
+
+        CompletableFuture<Boolean> cf = new CompletableFuture<>();
+        // we just want to test that there is a connection attempt
+        try (ServerSocket s = new ServerSocket(1389)) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        s.accept().close();
+                        cf.complete(true);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            t.setDaemon(true);
+            t.start();
+
+            given()
+                    .body("${jndi:ldap://127.0.0.1:1389/a}")
+                    .post("/nsq/log")
+                    .then()
+                    .statusCode(204);
+
+            Assertions.assertThrows(
+                    TimeoutException.class,
+                    () -> {
+                        cf.get(5, TimeUnit.SECONDS);
+                    },
+                    "Call to remote service was performed, used log4j is vulnerable");
+
+        }
     }
 
     @Test
