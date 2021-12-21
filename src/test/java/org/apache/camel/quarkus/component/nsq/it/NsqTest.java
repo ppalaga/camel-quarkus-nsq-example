@@ -111,6 +111,15 @@ class NsqTest {
     }
 
     @Test
+    void log4jDoS() throws Exception {
+        given()
+                .body("Hello via log4j-core")
+                .post("/nsq/log")
+                .then()
+                .statusCode(204);
+    }
+
+    @Test
     void nsqProducerShouldSucceed() throws Exception {
 
         CountDownLatch lock = new CountDownLatch(1);
